@@ -1,0 +1,42 @@
+# 依赖包
+node_modules
+/.pnp
+.pnp.js
+
+# 测试覆盖率
+/coverage
+
+# Next.js
+/.next/
+/out/
+/build
+
+# 构建产物
+/dist
+/build
+
+# 环境变量文件
+.env
+.env*.local
+
+# 日志文件
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# 编辑器相关
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 操作系统相关
+.DS_Store
+Thumbs.db
+
+# 本地文件
+/temp
