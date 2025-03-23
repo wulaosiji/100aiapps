@@ -74,13 +74,43 @@ export default function AppDetailPage() {
     }
   };
   
-  // 加载应用数据
+  // 在客户端加载应用数据
   useEffect(() => {
     async function loadData() {
       try {
-        // 从特定榜单加载数据
-        const response = await fetch(`/api/excel-list/${listType}`);
-        const data = await response.json() as AIApp[];
+        // 使用window.location.origin获取当前域名
+        const baseUrl = typeof window !== 'undefined' 
+          ? window.location.origin
+          : (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001');
+          
+        const fullUrl = `${baseUrl}/data/excel-data.json`;
+        console.log('正在获取应用详情数据，URL:', fullUrl);
+        
+        // 添加请求头和缓存控制
+        const response = await fetch(fullUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
+          },
+          cache: 'no-store'
+        });
+        
+        if (!response.ok) {
+          console.error(`请求失败，状态码: ${response.status}`);
+          throw new Error(`Failed to fetch data: ${response.statusText}`);
+        }
+        
+        const allData = await response.json() as {
+          Web: AIApp[];
+          App: AIApp[];
+          all: AIApp[];
+        };
+        
+        // 根据榜单类型选择对应的数据集
+        const data = allData[listType as keyof typeof allData] || [];
+        console.log(`获取到 ${data.length} 条数据`);
+        
+        // 在数据集中查找指定排名的应用
         const foundApp = data.find((a: AIApp) => a.rank.toString() === appId);
         
         if (foundApp) {

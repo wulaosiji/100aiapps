@@ -253,7 +253,7 @@ export default function AppsPage() {
               <div className="flex flex-wrap gap-2">
                 {markets.map((market) => (
                   <button
-                    key={market}
+                    key={`market-${market}`}
                     onClick={() => setSelectedMarket(market)}
                     className={`px-4 py-2 rounded-full text-sm font-medium ${
                       selectedMarket === market
@@ -273,7 +273,7 @@ export default function AppsPage() {
               <div className="flex flex-wrap gap-2">
                 {categories.map((category) => (
                   <button
-                    key={category}
+                    key={`category-${category}`}
                     onClick={() => setSelectedCategory(category)}
                     className={`px-4 py-2 rounded-full text-sm font-medium ${
                       selectedCategory === category
@@ -363,7 +363,7 @@ export default function AppsPage() {
                 </thead>
                 <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
                   {filteredApps.map((app) => (
-                    <tr key={`${app.listType || 'unknown'}-${app.rank}`} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <tr key={`${app.listType || 'unknown'}-${app.product}-${app.rank}`} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                         {app.rank}
                       </td>

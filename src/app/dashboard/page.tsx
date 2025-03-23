@@ -80,15 +80,41 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const response = await fetch('/api/excel-list/all');
+        // 使用window.location.origin获取当前域名
+        const baseUrl = typeof window !== 'undefined' 
+          ? window.location.origin
+          : (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001');
+          
+        const fullUrl = `${baseUrl}/data/excel-data.json`;
+        console.log('正在获取仪表盘数据，URL:', fullUrl);
+        
+        const response = await fetch(fullUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
+          },
+          cache: 'no-store'
+        });
+        
         if (!response.ok) {
-          throw new Error('Failed to fetch data');
+          console.error(`请求失败，状态码: ${response.status}`);
+          throw new Error(`Failed to fetch data: ${response.statusText}`);
         }
-        const data = await response.json();
+        
+        const allData = await response.json() as {
+          Web: AIApp[];
+          App: AIApp[];
+          all: AIApp[];
+        };
+        
+        // 根据当前选定的数据类型获取相应的数据
+        const data = allData[dataType] || [];
+        console.log(`获取到 ${data.length} 条数据`);
+        
         setAIApps(data as AIApp[]);
         
         // 根据当前选定的数据类型计算分类分布
-        calculateDistribution((data as AIApp[]).filter((app: AIApp) => app.listType === dataType));
+        calculateDistribution(data as AIApp[]);
         
         setIsLoading(false);
       } catch (error) {
@@ -98,14 +124,15 @@ export default function DashboardPage() {
     }
     
     loadData();
-  }, [setAIApps]);
+  }, [setAIApps, dataType]);
   
   // 当数据类型改变时重新计算分类分布
   useEffect(() => {
     if (aiApps.length > 0) {
-      calculateDistribution(aiApps.filter(app => app.listType === dataType));
+      // 直接使用aiApps数据，因为它已经是过滤后的数据
+      calculateDistribution(aiApps);
     }
-  }, [dataType, aiApps]);
+  }, [aiApps]);
   
   // 计算分类分布的函数
   const calculateDistribution = (apps: AIApp[]) => {

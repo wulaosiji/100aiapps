@@ -8,9 +8,14 @@ import Footer from '@/components/ui/Footer';
 import { useDropzone } from 'react-dropzone';
 
 export default function AdminPage() {
-  const { setAIApps } = useDataStore();
+  const { setAIApps, setRawData, getRawData } = useDataStore();
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{
+    success: boolean;
+    message: string;
+  } | null>(null);
+  const [saveStatus, setSaveStatus] = useState<{
     success: boolean;
     message: string;
   } | null>(null);
@@ -19,6 +24,63 @@ export default function AdminPage() {
     rowCount: number;
     timestamp: string;
   } | null>(null);
+
+  // 下载Excel模板函数
+  const downloadExcelTemplate = (type: 'Web' | 'App' | 'All') => {
+    // 构建API请求URL
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
+    const url = `${baseUrl}/api/excel-template?type=${type}`;
+    
+    // 使用a标签触发下载
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${type.toLowerCase()}-template.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 保存数据到服务器
+  const saveDataToServer = async () => {
+    setIsSaving(true);
+    setSaveStatus(null);
+    
+    try {
+      // 获取当前数据
+      const data = getRawData();
+      
+      // 发送到API端点
+      const response = await fetch('/api/save-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setSaveStatus({
+          success: true,
+          message: `数据已成功保存到服务器 (${new Date().toLocaleString('zh-CN')})`,
+        });
+      } else {
+        const error = await response.json() as { error?: string };
+        setSaveStatus({
+          success: false,
+          message: `保存失败: ${error.error || '未知错误'}`,
+        });
+      }
+    } catch (error) {
+      console.error('保存数据错误:', error);
+      setSaveStatus({
+        success: false,
+        message: `保存失败: ${(error as Error).message}`,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // 处理文件上传
   const onDrop = async (acceptedFiles: File[]) => {
@@ -35,24 +97,28 @@ export default function AdminPage() {
 
     setIsUploading(true);
     setUploadStatus(null);
+    setSaveStatus(null);
 
     try {
       // 解析Excel文件
       const data = await parseExcelFile(file);
       
-      // 更新数据存储
-      setAIApps(data);
+      // 更新数据存储 - 使用all数组而不是整个AppLists对象
+      setAIApps(data.all);
+      
+      // 同时保存原始数据结构
+      setRawData(data);
       
       // 记录上传信息
       setUploadedData({
         fileName: file.name,
-        rowCount: data.length,
+        rowCount: data.all.length,
         timestamp: new Date().toLocaleString('zh-CN'),
       });
       
       setUploadStatus({
         success: true,
-        message: `成功上传并解析Excel文件，共${data.length}条记录`,
+        message: `成功上传并解析Excel文件，共${data.all.length}条记录`,
       });
     } catch (error) {
       console.error('Error parsing Excel file:', error);
@@ -173,6 +239,41 @@ export default function AdminPage() {
                     </dd>
                   </div>
                 </div>
+                
+                {/* 保存到服务器按钮 */}
+                <div className="mt-6">
+                  <button
+                    onClick={saveDataToServer}
+                    disabled={isSaving}
+                    className={`px-4 py-2 rounded-md w-full text-white font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                      isSaving
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+                    }`}
+                  >
+                    {isSaving ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        正在保存...
+                      </span>
+                    ) : (
+                      '保存数据到服务器'
+                    )}
+                  </button>
+                  
+                  {saveStatus && (
+                    <div className={`mt-4 p-4 rounded-md ${
+                      saveStatus.success 
+                        ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200' 
+                        : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200'
+                    }`}>
+                      <p>{saveStatus.message}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -186,6 +287,36 @@ export default function AdminPage() {
                 <p className="mb-2">3. 等待文件解析完成，系统会自动更新数据</p>
                 <p className="mb-2">4. 上传成功后，可以在产品列表页和数据仪表盘查看更新后的数据</p>
                 <p>注意：每次上传将覆盖所有现有数据，请确保Excel文件包含完整的数据集</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* 模板下载区域 */}
+          <div className="mt-8 bg-white dark:bg-gray-800 shadow overflow-hidden rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">下载Excel模板</h2>
+              <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+                <p className="mb-4">您可以下载预设的Excel模板，然后按照模板格式填写您的数据。</p>
+                <div className="flex flex-wrap gap-4">
+                  <button 
+                    onClick={() => downloadExcelTemplate('Web')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  >
+                    下载Web榜单模板
+                  </button>
+                  <button 
+                    onClick={() => downloadExcelTemplate('App')}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                  >
+                    下载App榜单模板
+                  </button>
+                  <button 
+                    onClick={() => downloadExcelTemplate('All')}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                  >
+                    下载完整模板
+                  </button>
+                </div>
               </div>
             </div>
           </div>

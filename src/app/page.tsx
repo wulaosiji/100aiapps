@@ -3,20 +3,25 @@ import Header from '@/components/ui/Header';
 import Footer from '@/components/ui/Footer';
 import HeroSection from '@/components/ui/HeroSection';
 import FeaturedApps from '@/components/ui/FeaturedApps';
+import { AppLists } from '@/lib/excelParser';
 import path from 'path';
+import fs from 'fs/promises';
 
 export default async function Home() {
   // 获取Excel数据
-  let appData;
+  let appData: AppLists;
   try {
-    // 使用新的API端点
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/excel-data`, { cache: 'no-store' });
+    // 使用服务器端文件系统直接读取数据
+    console.log('开始获取数据...');
     
-    if (!response.ok) {
-      throw new Error('Failed to fetch data');
-    }
+    // 构建JSON文件路径
+    const jsonPath = path.join(process.cwd(), 'public', 'data', 'excel-data.json');
+    console.log('数据文件路径:', jsonPath);
     
-    appData = await response.json();
+    // 直接从文件系统读取JSON数据
+    const fileData = await fs.readFile(jsonPath, 'utf8');
+    appData = JSON.parse(fileData) as AppLists;
+    console.log('数据获取成功');
   } catch (error) {
     console.error('Error loading Excel data:', error);
     // 提供一些默认数据，避免页面崩溃
@@ -28,7 +33,7 @@ export default async function Home() {
           category: "语言模型",
           website: "https://chat.openai.com",
           mrr: 1000,
-          growthRate: 15,
+          growthRate: 0.15,
           arr: 12000,
           listType: 'Web'
         }
@@ -40,7 +45,7 @@ export default async function Home() {
           category: "语言模型",
           app: "Claude",
           mrr: 600,
-          growthRate: 20,
+          growthRate: 0.20,
           arr: 7200,
           listType: 'App'
         }

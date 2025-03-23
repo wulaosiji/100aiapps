@@ -1,9 +1,17 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { AIApp } from './excelParser';
+import { AIApp, AppLists } from './excelParser';
+
+// 默认空数据
+const defaultAppLists: AppLists = {
+  Web: [],
+  App: [],
+  all: []
+};
 
 interface DataState {
   aiApps: AIApp[];
+  rawData: AppLists;
   categories: string[];
   filteredApps: AIApp[];
   searchTerm: string;
@@ -15,16 +23,19 @@ interface DataState {
   
   // 操作方法
   setAIApps: (apps: AIApp[]) => void;
+  setRawData: (data: AppLists) => void;
   setSearchTerm: (term: string) => void;
   setSelectedCategory: (category: string) => void;
   setSortConfig: (key: keyof AIApp, direction: 'asc' | 'desc') => void;
   resetFilters: () => void;
+  getRawData: () => AppLists;
 }
 
 export const useDataStore = create<DataState>()(
   persist(
     (set, get) => ({
       aiApps: [],
+      rawData: defaultAppLists,
       categories: [],
       filteredApps: [],
       searchTerm: '',
@@ -43,6 +54,10 @@ export const useDataStore = create<DataState>()(
           categories,
           filteredApps: apps,
         });
+      },
+      
+      setRawData: (data: AppLists) => {
+        set({ rawData: data });
       },
       
       setSearchTerm: (term: string) => {
@@ -117,6 +132,11 @@ export const useDataStore = create<DataState>()(
           },
           filteredApps: aiApps,
         });
+      },
+      
+      getRawData: () => {
+        const { rawData } = get();
+        return rawData || defaultAppLists;
       },
     }),
     {

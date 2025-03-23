@@ -224,3 +224,106 @@ export async function loadExcelFromPath(filePath: string): Promise<AppLists> {
     throw error;
   }
 }
+
+/**
+ * 生成Excel模板文件
+ * @param type 榜单类型: 'Web', 'App', 'All'
+ * @returns Excel工作簿的二进制数据
+ */
+export function generateExcelTemplate(type: 'Web' | 'App' | 'All' = 'All'): Uint8Array {
+  // 创建工作簿
+  const wb = XLSX.utils.book_new();
+  
+  // 定义Web榜单的表头
+  const webHeaders = [
+    '排名', '产品', '市场', '分类', '网址', 
+    'MRR\n(万美金)', '环比变化', 'ARR\n(万美金)',
+    '月活\n（万人）', 'ARPU\n(美金)'
+  ];
+  
+  // 定义App榜单的表头
+  const appHeaders = [
+    '排名', '产品', '市场', '分类', '应用', 
+    'MRR\n(万美金)', '环比变化', 'ARR\n(万美金)',
+    '月活\n（万人）', 'ARPU\n(美金)'
+  ];
+  
+  // 添加示例数据行
+  const webExampleData = [
+    {
+      '排名': 1,
+      '产品': 'ChatGPT',
+      '市场': '海外',
+      '分类': '语言模型',
+      '网址': 'https://chat.openai.com',
+      'MRR\n(万美金)': 1000,
+      '环比变化': 0.15,
+      'ARR\n(万美金)': 12000,
+      '月活\n（万人）': 5000,
+      'ARPU\n(美金)': 2.00
+    }
+  ];
+  
+  const appExampleData = [
+    {
+      '排名': 1,
+      '产品': 'Claude',
+      '市场': '海外',
+      '分类': '语言模型',
+      '应用': 'Claude',
+      'MRR\n(万美金)': 600,
+      '环比变化': 0.20,
+      'ARR\n(万美金)': 7200,
+      '月活\n（万人）': 3000,
+      'ARPU\n(美金)': 2.00
+    }
+  ];
+  
+  // 根据类型创建工作表
+  if (type === 'Web' || type === 'All') {
+    // 创建Web榜单工作表
+    const webWs = XLSX.utils.json_to_sheet(webExampleData);
+    
+    // 设置列宽
+    const webColWidth = [
+      { wch: 5 },  // 排名
+      { wch: 15 }, // 产品
+      { wch: 10 }, // 市场
+      { wch: 12 }, // 分类
+      { wch: 25 }, // 网址
+      { wch: 10 }, // MRR
+      { wch: 10 }, // 环比变化
+      { wch: 10 }, // ARR
+      { wch: 10 }, // 月活
+      { wch: 10 }  // ARPU
+    ];
+    
+    // 添加工作表到工作簿
+    XLSX.utils.book_append_sheet(wb, webWs, 'Web');
+  }
+  
+  if (type === 'App' || type === 'All') {
+    // 创建App榜单工作表
+    const appWs = XLSX.utils.json_to_sheet(appExampleData);
+    
+    // 设置列宽
+    const appColWidth = [
+      { wch: 5 },  // 排名
+      { wch: 15 }, // 产品
+      { wch: 10 }, // 市场
+      { wch: 12 }, // 分类
+      { wch: 15 }, // 应用
+      { wch: 10 }, // MRR
+      { wch: 10 }, // 环比变化
+      { wch: 10 }, // ARR
+      { wch: 10 }, // 月活
+      { wch: 10 }  // ARPU
+    ];
+    
+    // 添加工作表到工作簿
+    XLSX.utils.book_append_sheet(wb, appWs, 'App');
+  }
+  
+  // 转换为二进制数据
+  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+}
